@@ -1,0 +1,28 @@
+name: AD - Suspicious Scheduled Task Creation
+status: validated (workstation)
+mitre:
+  primary: T1053.005   # Scheduled Task/Job: Scheduled Task
+data_source:
+  index: windows_security
+  sourcetype: WinEventLog:Security
+  event: Security 4698 (scheduled task created); 4699 (deleted) used for investigation
+  hosts: [WINDOWS-11-PRO]
+  requires_audit: Object Access > Other Object Access Events (Success)
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -5m@m
+  latest: "@m"
+trigger: number of results > 0
+known_false_positives:
+  - Software installers and updaters registering tasks
+  - Admin-created maintenance tasks
+known_limitations:
+  - Parses classic-format events (EventCode=); does not yet match XML-format events from DC01.
+    Planned: apply the same coalesce() pattern used in the account-creation detection.
+validated_with:
+  - atomic: T1053.005-2 "Scheduled task Local" (schtasks.exe)
+    event_4698: "2026-11-16 20:15:09 IST"
+    alert_fired: "2026-11-16 20:20:01 IST"
+  - atomic: T1053.005-4 "Powershell Cmdlet Scheduled Task" (Register-ScheduledTask)
+    event_4698: "2026-11-16 20:25:11 IST"
+    alert_fired: "2026-11-16 20:30:01 IST"

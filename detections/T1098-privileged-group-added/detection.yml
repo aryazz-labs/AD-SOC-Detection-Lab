@@ -1,0 +1,38 @@
+name: PRIV - Privileged Group Membership Added - Domain and Local - T1098
+status: validated (DC + workstation)
+mitre:
+  primary: T1098       # Account Manipulation
+  related: T1078.002   # Valid Accounts: Domain Accounts (privilege obtained)
+data_source:
+  index: windows_security
+  sourcetypes:
+    - XmlWinEventLog:Security   # DC01
+    - WinEventLog:Security      # workstation
+  events:
+    4728: member added to security-enabled global group (e.g. Domain Admins)
+    4732: member added to security-enabled local group (e.g. Administrators)
+    4756: member added to security-enabled universal group (e.g. Enterprise Admins)
+  requires_audit: Account Management > Security Group Management (Success)
+logic: >
+  Normalises both log formats, then alerts only when the target group is privileged.
+  Ordinary group changes are ignored to keep the alert high-signal.
+severity:
+  Critical: Domain Admins, Enterprise Admins, Schema Admins
+  High: Administrators, Account/Backup/Server/Print Operators, DnsAdmins,
+        Group Policy Creator Owners, Remote Desktop Users
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -5m@m
+  latest: "@m"
+trigger: number of results > 0, per result
+replaces:
+  - AD - Privileged Group Membership Changes    # DC only
+  - SOC - Privileged Group Membership Change    # workstation only
+known_false_positives:
+  - Approved admin onboarding (should be rare and ticketed)
+validated_with:
+  - atomic: T1136.002-1   # adds new user to Domain Admins
+    event: "4728 @ 2026-11-16 22:17:00 IST (DC01) -> Critical"
+  - atomic: T1136.001-8   # adds new user to local Administrators
+    event: "4732 @ 2026-11-16 22:17:26 IST (WINDOWS-11-PRO) -> High"
+  - alert_fired: "2026-11-16 22:20:02 IST, 2 results"

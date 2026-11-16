@@ -1,0 +1,32 @@
+name: ACCT - New Account Created - Domain and Local - T1136
+status: validated (DC + workstation)
+mitre:
+  primary: T1136.002   # Create Account: Domain Account
+  related: T1136.001   # Create Account: Local Account
+data_source:
+  index: windows_security
+  sourcetypes:
+    - XmlWinEventLog:Security   # DC01 (domain accounts)
+    - WinEventLog:Security      # workstation (local accounts)
+  event: Security 4720 (user account created)
+  requires_audit: Account Management > User Account Management (Success)
+logic: >
+  Normalises the event ID and account fields across both log formats with coalesce(),
+  so one search covers domain accounts created on the DC and local accounts created on endpoints.
+severity: Medium (escalated by the T1098 detection if the account is added to a privileged group)
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -5m@m
+  latest: "@m"
+trigger: number of results > 0, per result
+replaces:
+  - AD - Suspicious User Account Creation   # DC only (XML)
+  - SOC - New User Account Created          # workstation only (classic)
+known_false_positives:
+  - Legitimate onboarding by IT (correlate with change tickets / creator account)
+validated_with:
+  - atomic: T1136.002-1 "Create a new Windows domain admin user"
+    event_4720: "2026-11-16 22:17:00 IST (DC01)"
+  - atomic: T1136.001-8 "Create a new Windows admin user"
+    event_4720: "2026-11-16 22:17:26 IST (WINDOWS-11-PRO)"
+  - alert_fired: "2026-11-16 22:20:02 IST, 2 results"

@@ -1,0 +1,30 @@
+name: ADS - Suspicious NTFS Alternate Data Stream (T1564.004)
+status: validated
+mitre:
+  primary: T1564.004   # Hide Artifacts: NTFS File Attributes
+  related: T1059.001   # PowerShell (execution method used in test)
+data_source:
+  index: windows_security
+  sourcetype: XmlWinEventLog:Microsoft-Windows-Sysmon/Operational
+  event: Sysmon Event ID 15 (FileCreateStreamHash)
+  hosts: [WINDOWS-11-PRO]
+logic: >
+  Alert on any alternate data stream whose name is not on the environment's benign
+  baseline, OR on any stream (even benign names) written by a scripting / LOLBin process.
+severity:
+  High: stream written by powershell, cmd, wscript, cscript, mshta, rundll32, regsvr32, certutil, bitsadmin, wmic
+  Medium: unusual stream name written by any other process
+schedule:
+  cron: "*/15 * * * *"
+  earliest: -15m@m
+  latest: "@m"
+trigger: number of results > 0, per result
+throttle: ProcessGuid, TargetFilename for 60 minutes
+baseline_excluded_streams: [Zone.Identifier, SmartScreen, OECustomProperty, encryptable]
+known_false_positives:
+  - Browsers/Explorer writing Zone.Identifier (excluded by baseline)
+  - Admin scripts that legitimately use ADS (would alert as High - review)
+validated_with:
+  - atomic: T1059.001-11 "NTFS Alternate Data Stream Access"
+    runs: ["2026-11-16 08:38 IST", "2026-11-16 20:03 IST"]
+    alert_fired: "2026-11-16 20:15:02 IST"

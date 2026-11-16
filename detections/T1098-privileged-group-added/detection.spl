@@ -1,0 +1,18 @@
+index=windows_security (sourcetype="WinEventLog:Security" OR sourcetype="XmlWinEventLog:Security")
+| rex field=_raw "<EventID[^>]*>(?<xml_eid>\d+)</EventID>"
+| eval EID=coalesce(xml_eid, EventCode)
+| where EID="4728" OR EID="4732" OR EID="4756"
+| rex field=_raw "<Data Name='TargetUserName'>(?<x_group>[^<]+)"
+| rex field=_raw "<Data Name='MemberName'>(?<x_member>[^<]+)"
+| rex field=_raw "<Data Name='MemberSid'>(?<x_membersid>[^<]+)"
+| rex field=_raw "<Data Name='SubjectUserName'>(?<x_actor>[^<]+)"
+| rex field=_raw "(?s)Subject:\s+Security ID:[^\r\n]*[\r\n]+\s+Account Name:\s+(?<c_actor>[^\r\n]+)"
+| rex field=_raw "(?s)Member:\s+Security ID:\s+(?<c_membersid>[^\r\n]+)[\r\n]+\s+Account Name:\s+(?<c_member>[^\r\n]+)"
+| rex field=_raw "(?s)Group:\s+Security ID:[^\r\n]*[\r\n]+\s+Group Name:\s+(?<c_group>[^\r\n]+)"
+| eval Group=trim(coalesce(x_group,c_group)), Member=trim(coalesce(x_member,c_member)), MemberSid=trim(coalesce(x_membersid,c_membersid)), ChangedBy=trim(coalesce(x_actor,c_actor))
+| where match(Group,"(?i)^(Administrators|Domain Admins|Enterprise Admins|Schema Admins|Account Operators|Backup Operators|Server Operators|Print Operators|DnsAdmins|Group Policy Creator Owners|Remote Desktop Users)$")
+| eval Severity=if(match(Group,"(?i)^(Domain Admins|Enterprise Admins|Schema Admins)$"),"Critical","High")
+| eval Scope=if(sourcetype="XmlWinEventLog:Security","Domain group (DC)","Local group (workstation)")
+| eval Detection="Privileged Group Membership Added", MITRE="T1098"
+| table _time host Scope Detection Severity MITRE ChangedBy Group Member MemberSid EID
+| sort -_time

@@ -1,0 +1,17 @@
+index=windows_security sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"
+| rex field=_raw "<EventID[^>]*>(?<EventID>[^<]+)"
+| where EventID="15"
+| rex field=_raw "<Data Name='ProcessGuid'>(?<ProcessGuid>[^<]+)"
+| rex field=_raw "<Data Name='Image'>(?<Image>[^<]+)"
+| rex field=_raw "<Data Name='User'>(?<User>[^<]+)"
+| rex field=_raw "<Data Name='TargetFilename'>(?<TargetFilename>[^<]+)"
+| rex field=_raw "<Data Name='Contents'>(?<Contents>[^<]*)"
+| rex field=TargetFilename "\\\\[^\\\\:]+:(?<StreamName>[^:]+)$"
+| where isnotnull(StreamName)
+| eval ProcessName=lower(mvindex(split(Image,"\\"),-1))
+| eval benign_stream=if(match(StreamName,"(?i)^(Zone\.Identifier|SmartScreen|OECustomProperty|encryptable)$"),1,0)
+| eval lolbin=if(match(ProcessName,"^(powershell|pwsh|cmd|wscript|cscript|mshta|rundll32|regsvr32|certutil|bitsadmin|wmic)\.exe$"),1,0)
+| where benign_stream=0 OR lolbin=1
+| eval Detection="Suspicious NTFS Alternate Data Stream", Severity=if(lolbin=1,"High","Medium")
+| table _time host Detection Severity User ProcessName ProcessGuid TargetFilename StreamName Contents
+| sort -_time

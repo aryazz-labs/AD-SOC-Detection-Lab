@@ -1,0 +1,13 @@
+index=windows_security
+| rex field=_raw "EventCode=(?<EventCode>\d+)"
+| where EventCode="4698"
+| rex field=_raw "ComputerName=(?<ComputerName>[^\r\n]+)"
+| rex field=_raw "RecordNumber=(?<EventRecordID>\d+)"
+| rex field=_raw "(?m)Account Name:\s*(?<CreatorUser>[^\r\n]+)"
+| rex field=_raw "(?m)Account Domain:\s*(?<CreatorDomain>[^\r\n]+)"
+| rex field=_raw "(?m)Task Name:\s*(?<TaskName>[^\r\n]+)"
+| rex field=_raw "<Command>(?<TaskCommand>[^<]+)</Command>"
+| rex field=_raw "<Arguments>(?<TaskArguments>[^<]*)</Arguments>"
+| rex field=_raw "<URI>(?<TaskURI>[^<]+)</URI>"
+| table _time host EventCode ComputerName CreatorUser CreatorDomain TaskName TaskCommand TaskArguments TaskURI EventRecordID
+| sort -_time
