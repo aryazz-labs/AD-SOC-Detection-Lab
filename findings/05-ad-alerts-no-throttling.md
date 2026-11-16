@@ -4,7 +4,7 @@
 |---|---|
 | **Impact** | A single brute-force / spray / lockout incident raises a fresh alert on **every 5-minute run** until its events age out — up to ~3 duplicate alerts per incident, inflating metrics and causing analyst fatigue |
 | **Found by** | Reviewing `index=_internal sourcetype=scheduler` while validating the five new T1110 detections |
-| **Status** | ✅ Fix applied 2026-11-17 02:04 IST (`alert.suppress` set on all three AD alerts) — after-validation re-test pending |
+| **Status** | ✅ Fixed and verified 2026-11-17 — `alert.suppress` set on all three AD alerts; re-test confirmed one fire per incident |
 
 ## This is Finding 2, re-opened for the AD alert set
 
@@ -70,9 +70,17 @@ Set on all three AD alerts via the Splunk REST `saved/searches` endpoint on 2026
 | `AD - Suspicious Account Lockout` | 1 | 15m | `TargetUserName` |
 | `AD - Password Spraying` | 1 | 15m | `IpAddress` |
 
-## Validation plan (after-test pending)
+## After-test (verified)
 
-Re-run `T1110.001-1` (`-InputArgs @{"user"="soc.testuser"}`) and `T1110.003-1` and confirm each incident now produces **exactly one** triggered alert instead of re-firing every run — then attach the before/after. (The "before" — 11 / 9 / 3 fires — is captured above.)
+Re-ran `T1110.001-1` (`-InputArgs @{"user"="soc.testuser"}`) and `T1110.003-1` at ~02:05 IST. Each alert's cumulative triggered-alert count rose by **exactly 1**, confirming one fire per incident instead of one per run:
+
+| Alert | Before | After one more incident |
+|---|---|---|
+| `AD - Multiple Failed Kerberos` | 11 | **12** (+1) |
+| `AD - Suspicious Account Lockout` | 9 | **10** (+1) |
+| `AD - Password Spraying` | 3 | **4** (+1) |
+
+The scheduler still ran the search each 5 minutes (02:10 result_count>0), but suppression collapsed the repeats into a single triggered alert — exactly the intended behaviour.
 
 ## Design rule reaffirmed
 
