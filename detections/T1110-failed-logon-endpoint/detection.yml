@@ -1,0 +1,37 @@
+name: SOC - Multiple Failed Logon
+status: validated (WINDOWS-11-PRO)
+mitre:
+  primary: T1110       # Brute Force — at the endpoint
+data_source:
+  index: windows_security
+  sourcetypes:
+    - WinEventLog:Security      # classic format, workstation-local LSA
+  event: Security 4625 (an account failed to log on) on the workstation
+  requires_audit: Logon/Logoff > Logon (Failure)
+logic: >
+  Counts 4625 failures per account and source, binned into 10-minute buckets, on the
+  WORKSTATION. This detects failed logons processed by the endpoint's own LSA (local accounts,
+  interactive/network logons terminating on the host) — a different vantage point from the
+  DC-side Kerberos detection.
+severity: Medium
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -10m
+  latest: now
+trigger: number of results > 0, per result
+throttle:
+  suppress: true
+  period: 10m
+scoping_note: >
+  IMPORTANT — this detection reads 4625 on the workstation. Standard T1110 atomics
+  (net use by hostname, SMB) authenticate against the DC via Kerberos and produce 4771/4776
+  on DC01, NOT 4625 on the endpoint, so they cannot exercise this rule. It was validated with
+  a direct LogonUser() local-logon simulation instead. Full rationale:
+  findings/04-endpoint-alerts-not-art-drivable.md.
+known_false_positives:
+  - User repeatedly mistyping a local password at the lock screen.
+  - A service or scheduled task on the host running under stale local credentials.
+validated_with:
+  - method: manual simulation (LogonUser P/Invoke, logon type 2 INTERACTIVE)
+    detail: 5 bad-password LogonUser calls on WINDOWS-11-PRO -> 5x local 4625 (classic)
+    alert_fired: "2026-11-17 01:00:01 IST"

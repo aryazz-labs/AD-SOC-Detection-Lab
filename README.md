@@ -14,8 +14,8 @@
 | **SIEM** | Splunk Enterprise 10.6 on AWS EC2, Universal Forwarders on both hosts |
 | **Telemetry** | Windows Security log (both hosts), Sysmon (workstation) |
 | **Attack simulation** | Atomic Red Team (Invoke-AtomicRedTeam) |
-| **Detections validated** | 4 end-to-end (attack → log → alert), across 2 hosts and 2 log formats |
-| **Gaps found & fixed** | 3 — see [Findings](#findings-what-the-attacks-revealed) |
+| **Detections validated** | 9 end-to-end (attack → log → alert), across 2 hosts and 2 log formats |
+| **Gaps found** | 5 — 3 fixed, 2 diagnosed with a fix specified — see [Findings](#findings-what-the-attacks-revealed) |
 
 ---
 
@@ -48,9 +48,19 @@ Full build details: [`active-directory/`](active-directory/README.md)
 | [Scheduled Task Creation](detections/T1053.005-scheduled-task/) | T1053.005 | T1053.005-2 (`schtasks.exe`), T1053.005-4 (PowerShell cmdlets) | Workstation | Fired for **both** creation methods |
 | [New Account Created — Domain & Local](detections/T1136-account-created/) | T1136.001, T1136.002 | T1136.002-1, T1136.001-8 | DC + Workstation | Fired for **both** in one run |
 | [Privileged Group Membership Added](detections/T1098-privileged-group-added/) | T1098 | Same runs as above — each test also adds the new account to a privileged group | DC + Workstation | Domain Admins → **Critical**, local Administrators → **High** |
+| [Multiple Failed Kerberos Auth](detections/T1110.001-kerberos-brute-force/) | T1110.001 | Manual + T1110.001-1 (`user=soc.testuser`) | DC01 | Fired on 5× 4771 `0x18` |
+| [Password Spraying](detections/T1110.003-password-spraying/) | T1110.003 | T1110.003-1 | DC01 | Fired on 6 distinct accounts from one source |
+| [Suspicious Account Lockout](detections/T1110-account-lockout/) | T1110 | Manual + T1110.001-1 | DC01 | Fired on 4740, mapped to source |
+| [Multiple Failed Logon (endpoint)](detections/T1110-failed-logon-endpoint/) | T1110 | Manual `LogonUser` | Workstation | Fired on 5× local 4625 |
+| [Failed → Successful Logon](detections/T1110-failed-then-successful-logon/) | T1110 | Manual `LogonUser` | Workstation | Fired on 5 fails + 1 success in one bin |
+
+> **Why two of these used a manual simulation instead of an atomic:** the endpoint logon rules read **4625 on the workstation**, but standard T1110 atomics authenticate against the **DC** (Kerberos → 4771) and never produce that event. Recognising that and validating with a `LogonUser` local logon is [finding 4](findings/04-endpoint-alerts-not-art-drivable.md).
+
+![All five T1110 detections firing](evidence/14-t1110-fires-summary.png)
+*All five credential-access detections firing, by scheduler count and time.*
 
 ### 🔄 Built, validation pending
-Password spraying (T1110.003) · Kerberos brute force (T1110.001) · Account lockout · Failed-then-successful logon · Encoded PowerShell (T1059.001 — tested in an earlier session; re-validation with evidence planned). See [roadmap](docs/roadmap.md).
+Encoded PowerShell (T1059.001 — tested in an earlier session; re-validation with evidence planned) · Scheduled-task coverage on DC01. See [roadmap](docs/roadmap.md).
 
 ![Triggered alerts in Splunk](evidence/11-triggered-alerts.png)
 *The new combined alerts (ACCT, PRIV) and the ADS alert firing in Splunk's Triggered Alerts.*
@@ -76,6 +86,12 @@ The DC sends XML-formatted events, the workstation sends classic events. My "AD"
 |---|---|---|---|
 | Domain admin created on DC01 | ✅ | ❌ missed | ✅ |
 | Local admin created on workstation | ❌ missed | ✅ | ✅ |
+
+### 4. Two endpoint alerts couldn't be driven by standard brute-force atomics → [details](findings/04-endpoint-alerts-not-art-drivable.md)
+The `SOC - Multiple Failed Logon` and `SOC - Failed → Successful Logon` rules read **4625 on the workstation**. Every T1110 atomic I tried produced **nothing** there — because `net use` by hostname uses **Kerberos**, which fails at the **DC** (4771), so the workstation never logs the attempt. The rules were correct; the *validation method* was wrong. I drove them instead with a direct `LogonUser` local logon, which forces the attempt through the endpoint's own LSA. Knowing which of 4771 / 4776 / 4625 each auth protocol writes — and on which host — is what made these validations honest.
+
+### 5. The AD threshold alerts had no throttling → [details](findings/05-ad-alerts-no-throttling.md)
+Finding 2's design rule said threshold alerts should control duplicates with **throttling** — but the scheduler history showed the three AD alerts never had `alert.suppress` set. One password-spray test raised **3** alerts; one brute-force burst raised **up to 8**. The two SOC logon alerts (which *do* carry a 10-minute suppression) each fired once. Fix specified: `alert.suppress` keyed to `TargetUserName` (brute force/lockout) or `IpAddress` (spray).
 
 ---
 

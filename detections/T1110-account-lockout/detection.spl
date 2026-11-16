@@ -1,0 +1,9 @@
+index=windows_security earliest=-15m
+| rex field=_raw "<EventID[^>]*>(?<EventCode>[^<]+)"
+| where EventCode="4740"
+| rex field=_raw "<Data Name=['\"]TargetUserName['\"]>(?<TargetUserName>[^<]*)</Data>"
+| rex field=_raw "<Data Name=['\"]SubjectUserName['\"]>(?<SubjectUserName>[^<]*)</Data>"
+| rex field=_raw "<Data Name=['\"]SubjectDomainName['\"]>(?<SubjectDomainName>[^<]*)</Data>"
+| rex field=_raw "<EventRecordID>(?<EventRecordID>[^<]+)</EventRecordID>"
+| table _time host EventCode TargetUserName SubjectUserName SubjectDomainName EventRecordID
+| sort -_time

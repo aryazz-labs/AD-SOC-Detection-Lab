@@ -1,0 +1,9 @@
+index=windows_security host="DC01" "4771"
+| rex field=_raw "<Data Name='TargetUserName'>(?<TargetUserName>[^<]+)"
+| rex field=_raw "<Data Name='IpAddress'>(?<IpAddress>[^<]+)"
+| rex field=_raw "<Data Name='Status'>(?<Status>[^<]+)"
+| where Status="0x18"
+| stats count as failed_attempts by TargetUserName IpAddress
+| where failed_attempts >= 5
+| eval severity=if(failed_attempts>=10,"High","Medium")
+| table TargetUserName IpAddress failed_attempts severity

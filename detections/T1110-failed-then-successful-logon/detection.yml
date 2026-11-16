@@ -1,0 +1,38 @@
+name: SOC - Failed Logons Followed by Successful Logon
+status: validated (WINDOWS-11-PRO)
+mitre:
+  primary: T1110       # Brute Force ending in a successful guess
+data_source:
+  index: windows_security
+  sourcetypes:
+    - WinEventLog:Security      # classic format, workstation-local LSA
+  event: Security 4625 (failed) and 4624 (success) on the workstation
+  requires_audit: Logon/Logoff > Logon (Success + Failure)
+logic: >
+  The high-value variant of brute force: many failures for an account followed by a SUCCESS
+  in the same window — i.e. the attacker probably guessed the password. Bins 4624/4625 into
+  10-minute buckets per account and fires when failures >= 5 AND successes >= 1.
+severity: Medium (treat as High in practice — a likely-successful compromise)
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -10m
+  latest: now
+trigger: number of results > 0, per result
+throttle:
+  suppress: true
+  period: 10m
+binning_trick: >
+  stats runs over a 10-minute bin, so the ORDER of events within the bin does not matter.
+  During validation the SUCCESS was generated FIRST (while the account was still unlocked),
+  then the 5 failures — avoiding the lockout-vs-success collision with no mid-sequence unlock.
+  Everything just has to fall inside one wall-clock 10-minute boundary.
+scoping_note: >
+  Reads endpoint 4624/4625 (workstation LSA), so like SOC - Multiple Failed Logon it is NOT
+  drivable by DC-authenticating T1110 atomics. Validated with LogonUser().
+  See findings/04-endpoint-alerts-not-art-drivable.md.
+known_false_positives:
+  - User mistypes a password several times, then signs in correctly (very common — tune threshold / add context).
+validated_with:
+  - method: manual simulation (LogonUser P/Invoke)
+    detail: 1 good LogonUser (4624) then 5 bad (4625) for soc.testuser, same 10-min bin on WINDOWS-11-PRO
+    alert_fired: "2026-11-17 01:00:00 IST"

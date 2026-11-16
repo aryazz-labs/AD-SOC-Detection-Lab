@@ -1,0 +1,37 @@
+name: AD - Password Spraying Detection
+status: validated (DC01)
+mitre:
+  primary: T1110.003   # Brute Force: Password Spraying
+data_source:
+  index: windows_security
+  sourcetypes:
+    - XmlWinEventLog:Security   # DC01
+  event: Security 4771 (Kerberos pre-authentication failed)
+  requires_audit: Account Logon > Kerberos Authentication Service (Failure)
+logic: >
+  Password spraying inverts brute force: one password tried against many accounts, to stay
+  under per-account lockout thresholds. Where the brute-force rule counts failures per user,
+  this rule counts DISTINCT users that failed (0x18) from the same source IP. 5 or more
+  distinct accounts from one source inside the window indicates a spray.
+severity: Medium (escalates to High at >= 10 distinct accounts, via in-search eval)
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -15m
+  latest: now
+trigger: number of results > 0, per result
+throttle:
+  suppress: false            # KNOWN GAP — see findings/05-ad-alerts-no-throttling.md
+key_difference_from_brute_force: >
+  Same base search (4771 0x18 on DC01). Brute force = stats count BY TargetUserName (depth on
+  one account). Spraying = stats dc(TargetUserName) BY IpAddress (breadth across accounts).
+known_false_positives:
+  - A single misconfigured host or application retrying several accounts' stale credentials.
+  - Vulnerability scanners / pentest tooling authenticating as many users.
+validated_with:
+  - atomic: T1110.003-1 "Password Spray all Domain Users"
+    detail: >
+      one password across every domain user via net use; prereq -GetPrereqs builds
+      %temp%\users.txt from `net user /domain`. One attempt per user, so no lockouts.
+    unique_accounts_observed: 6
+    source: WINDOWS-11-PRO (192.168.10.20)
+    alert_fired: "2026-11-17 01:15:01 IST"

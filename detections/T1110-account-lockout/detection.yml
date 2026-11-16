@@ -1,0 +1,38 @@
+name: AD - Suspicious Account Lockout
+status: validated (DC01)
+mitre:
+  primary: T1110       # Brute Force (lockout is the side effect of guessing/spraying)
+data_source:
+  index: windows_security
+  sourcetypes:
+    - XmlWinEventLog:Security   # DC01 records the authoritative 4740
+  event: Security 4740 (user account locked out)
+  requires_audit: Account Management > User Account Management (Success)
+logic: >
+  Surfaces every 4740 (account locked out), with the caller (SubjectUserName) and the locked
+  account (TargetUserName). A lockout is the downstream signal of the brute-force / spray
+  detections and is valuable on its own: it catches guessing that happened faster than the
+  threshold window, and it maps the lockout back to the source.
+severity: Medium
+schedule:
+  cron: "*/5 * * * *"
+  earliest: -15m              # also set inline in the SPL (earliest=-15m)
+  latest: now
+trigger: number of results > 0, per result
+throttle:
+  suppress: false            # KNOWN GAP — see findings/05-ad-alerts-no-throttling.md
+notes:
+  - 4740 is written on the PDC-emulator DC, parsed from XML (EventID element), not the classic EventCode field.
+  - Pairs with the Kerberos brute-force detection: 0x18 shows the guessing, 4740 shows it succeeded in locking the account.
+known_false_positives:
+  - User fat-fingering a password on multiple devices after a password change.
+  - Stale cached credential on a phone / mapped drive repeatedly retried until lockout.
+validated_with:
+  - method: manual simulation
+    detail: bad passwords for soc.testuser until lockout -> 4740 on DC01
+    alert_fired: "2026-11-17 00:35:01 IST"
+  - atomic: T1110.001-1 "Brute Force Credentials of single AD user"
+    input_args: 'user=soc.testuser'
+    detail: the 5-password atomic also trips the lockout threshold (domain policy = 5) -> 4740
+    event_4740: "~2026-11-17 01:17 IST (DC01)"
+    alert_fired: "2026-11-17 01:20:01 IST"
