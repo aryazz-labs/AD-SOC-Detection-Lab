@@ -47,10 +47,10 @@ Full build details: [`active-directory/`](active-directory/README.md)
 | [Suspicious NTFS Alternate Data Stream](detections/T1564.004-ntfs-ads/) | T1564.004 (exec via T1059.001) | T1059.001-11 | Workstation | Fired, **High** — 0 false positives against 24h baseline |
 | [Scheduled Task Creation](detections/T1053.005-scheduled-task/) | T1053.005 | T1053.005-2 (`schtasks.exe`), T1053.005-4 (PowerShell cmdlets) | Workstation | Fired for **both** creation methods |
 | [New Account Created — Domain & Local](detections/T1136-account-created/) | T1136.001, T1136.002 | T1136.002-1, T1136.001-8 | DC + Workstation | Fired for **both** in one run |
-| [Privileged Group Membership Added](detections/T1098-privileged-group-added/) | T1098 | T1136.002-1, T1136.001-8 | DC + Workstation | Domain Admins → **Critical**, local Administrators → **High** |
+| [Privileged Group Membership Added](detections/T1098-privileged-group-added/) | T1098 | Same runs as above — each test also adds the new account to a privileged group | DC + Workstation | Domain Admins → **Critical**, local Administrators → **High** |
 
 ### 🔄 Built, validation pending
-Password spraying (T1110.003) · Kerberos brute force (T1110.001) · Account lockout · Failed-then-successful logon · Encoded PowerShell (T1059.001 — validated in an earlier session, evidence to be added). See [roadmap](docs/roadmap.md).
+Password spraying (T1110.003) · Kerberos brute force (T1110.001) · Account lockout · Failed-then-successful logon · Encoded PowerShell (T1059.001 — tested in an earlier session; re-validation with evidence planned). See [roadmap](docs/roadmap.md).
 
 ![Triggered alerts in Splunk](evidence/11-triggered-alerts.png)
 *The new combined alerts (ACCT, PRIV) and the ADS alert firing in Splunk's Triggered Alerts.*
