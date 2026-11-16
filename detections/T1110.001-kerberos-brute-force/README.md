@@ -49,4 +49,4 @@ Invoke-AtomicTest T1110.001 -TestNumbers 1 -Cleanup
 
 ## Known limitation
 
-This alert has **no throttling** (`alert.suppress=false`). On a 5-minute schedule over a 15-minute window, one incident re-alerts every run until the events age out — observed firing at 00:35, 00:40, 00:45, 00:50, 00:55, 01:00, 01:05, 01:10, then again 01:20, 01:25 off the second test. The fix is documented in [finding 5](../../findings/05-ad-alerts-no-throttling.md).
+This alert originally had **no throttling** (`alert.suppress=false`). On a 5-minute schedule over a 15-minute window, one incident re-alerted every run until the events aged out — observed firing at 00:35, 00:40, 00:45, 00:50, 00:55, 01:00, 01:05, 01:10, then again 01:20, 01:25 off the second test. **Fixed 2026-11-17** — `alert.suppress=1`, 15m, keyed to `TargetUserName`. See [finding 5](../../findings/05-ad-alerts-no-throttling.md).

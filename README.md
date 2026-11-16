@@ -15,7 +15,7 @@
 | **Telemetry** | Windows Security log (both hosts), Sysmon (workstation) |
 | **Attack simulation** | Atomic Red Team (Invoke-AtomicRedTeam) |
 | **Detections validated** | 9 end-to-end (attack → log → alert), across 2 hosts and 2 log formats |
-| **Gaps found** | 5 — 3 fixed, 2 diagnosed with a fix specified — see [Findings](#findings-what-the-attacks-revealed) |
+| **Gaps found** | 5 — 4 fixed, plus 1 scoping insight — see [Findings](#findings-what-the-attacks-revealed) |
 
 ---
 
@@ -91,7 +91,7 @@ The DC sends XML-formatted events, the workstation sends classic events. My "AD"
 The `SOC - Multiple Failed Logon` and `SOC - Failed → Successful Logon` rules read **4625 on the workstation**. Every T1110 atomic I tried produced **nothing** there — because `net use` by hostname uses **Kerberos**, which fails at the **DC** (4771), so the workstation never logs the attempt. The rules were correct; the *validation method* was wrong. I drove them instead with a direct `LogonUser` local logon, which forces the attempt through the endpoint's own LSA. Knowing which of 4771 / 4776 / 4625 each auth protocol writes — and on which host — is what made these validations honest.
 
 ### 5. The AD threshold alerts had no throttling → [details](findings/05-ad-alerts-no-throttling.md)
-Finding 2's design rule said threshold alerts should control duplicates with **throttling** — but the scheduler history showed the three AD alerts never had `alert.suppress` set. One password-spray test raised **3** alerts; one brute-force burst raised **up to 8**. The two SOC logon alerts (which *do* carry a 10-minute suppression) each fired once. Fix specified: `alert.suppress` keyed to `TargetUserName` (brute force/lockout) or `IpAddress` (spray).
+Finding 2's design rule said threshold alerts should control duplicates with **throttling** — but the scheduler history showed the three AD alerts never had `alert.suppress` set. One password-spray test raised **3** alerts; one brute-force burst raised **up to 8**. The two SOC logon alerts (which *do* carry a 10-minute suppression) each fired once. **Fixed 2026-11-17** — `alert.suppress` applied to all three AD alerts, keyed to `TargetUserName` (brute force/lockout) or `IpAddress` (spray); after-test pending.
 
 ---
 

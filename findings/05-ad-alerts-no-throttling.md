@@ -4,7 +4,7 @@
 |---|---|
 | **Impact** | A single brute-force / spray / lockout incident raises a fresh alert on **every 5-minute run** until its events age out — up to ~3 duplicate alerts per incident, inflating metrics and causing analyst fatigue |
 | **Found by** | Reviewing `index=_internal sourcetype=scheduler` while validating the five new T1110 detections |
-| **Status** | ⚠️ Diagnosed, fix specified and ready to apply — the SOC equivalents already carry the fix |
+| **Status** | ✅ Fix applied 2026-11-17 02:04 IST (`alert.suppress` set on all three AD alerts) — after-validation re-test pending |
 
 ## This is Finding 2, re-opened for the AD alert set
 
@@ -60,9 +60,19 @@ alert.suppress.fields = IpAddress             # spray: throttle per source
 - **Brute force / lockout** → suppress on `TargetUserName` (optionally `TargetUserName,IpAddress`), so each *account* alerts once per window but two different victims still alert separately.
 - **Spraying** → suppress on `IpAddress`, so each *source* alerts once.
 
-## Validation plan
+## Applied
 
-Re-run the same atomics after applying the fix and confirm each incident produces **exactly one** scheduler fire — then attach a before/after of the scheduler history. (The "before" is already captured above.)
+Set on all three AD alerts via the Splunk REST `saved/searches` endpoint on 2026-11-17 02:04 IST:
+
+| Alert | `alert.suppress` | `alert.suppress.period` | `alert.suppress.fields` |
+|---|---|---|---|
+| `AD - Multiple Failed Kerberos` | 1 | 15m | `TargetUserName` |
+| `AD - Suspicious Account Lockout` | 1 | 15m | `TargetUserName` |
+| `AD - Password Spraying` | 1 | 15m | `IpAddress` |
+
+## Validation plan (after-test pending)
+
+Re-run `T1110.001-1` (`-InputArgs @{"user"="soc.testuser"}`) and `T1110.003-1` and confirm each incident now produces **exactly one** triggered alert instead of re-firing every run — then attach the before/after. (The "before" — 11 / 9 / 3 fires — is captured above.)
 
 ## Design rule reaffirmed
 

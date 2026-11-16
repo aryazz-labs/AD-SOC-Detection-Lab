@@ -35,4 +35,4 @@ Invoke-AtomicTest T1110.001 -TestNumbers 1 -InputArgs @{"user"="soc.testuser"}
 
 ## Known limitation
 
-No throttling (`alert.suppress=false`): a single 4740 re-alerts on every 5-minute run until it ages out of the 15-minute window (observed 00:35 → 00:45, then 01:00 → 01:10, then 01:20 → 01:25). Fix in [finding 5](../../findings/05-ad-alerts-no-throttling.md).
+Originally no throttling (`alert.suppress=false`): a single 4740 re-alerted on every 5-minute run until it aged out of the 15-minute window (observed 00:35 → 00:45, then 01:00 → 01:10, then 01:20 → 01:25). **Fixed 2026-11-17** — `alert.suppress=1`, 15m, keyed to `TargetUserName`. See [finding 5](../../findings/05-ad-alerts-no-throttling.md).

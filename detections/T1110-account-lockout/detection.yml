@@ -20,7 +20,9 @@ schedule:
   latest: now
 trigger: number of results > 0, per result
 throttle:
-  suppress: false            # KNOWN GAP — see findings/05-ad-alerts-no-throttling.md
+  suppress: true             # applied 2026-11-17 — see findings/05-ad-alerts-no-throttling.md
+  period: 15m
+  fields: TargetUserName
 notes:
   - 4740 is written on the PDC-emulator DC, parsed from XML (EventID element), not the classic EventCode field.
   - Pairs with the Kerberos brute-force detection: 0x18 shows the guessing, 4740 shows it succeeded in locking the account.

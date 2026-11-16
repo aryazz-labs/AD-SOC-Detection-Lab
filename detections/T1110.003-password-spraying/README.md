@@ -41,4 +41,4 @@ The atomic tries a single password against **every** domain user via `net use` (
 
 ## Known limitation
 
-Like the other AD threshold alerts, this one has **no throttling** — see [finding 5](../../findings/05-ad-alerts-no-throttling.md).
+Like the other AD threshold alerts, this one originally had **no throttling**. **Fixed 2026-11-17** — `alert.suppress=1`, 15m, keyed to `IpAddress`. See [finding 5](../../findings/05-ad-alerts-no-throttling.md).

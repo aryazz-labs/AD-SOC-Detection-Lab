@@ -20,6 +20,6 @@ Each folder contains:
 
 **Design conventions**
 - Single-event detections use a window equal to the schedule (`-5m@m`→`@m`) so each event alerts exactly once — see [finding 2](../findings/02-duplicate-alerts-window-overlap.md).
-- Threshold detections (spraying, brute force) keep a longer window than their schedule on purpose, so slow attacks still cross the threshold — and must pair that window with **throttling** (`alert.suppress`) to avoid duplicate fires. The SOC logon alerts do; the three AD alerts don't yet — see [finding 5](../findings/05-ad-alerts-no-throttling.md).
+- Threshold detections (spraying, brute force) keep a longer window than their schedule on purpose, so slow attacks still cross the threshold — and must pair that window with **throttling** (`alert.suppress`) to avoid duplicate fires. The SOC logon alerts always did; the three AD alerts now do too (applied 2026-11-17) — see [finding 5](../findings/05-ad-alerts-no-throttling.md).
 - Endpoint logon detections (4625 on the workstation) and DC Kerberos detections (4771 on the DC) see **different** auth paths; pick the validation method to match the event source — see [finding 4](../findings/04-endpoint-alerts-not-art-drivable.md).
 - Searches that cover the DC must parse **both** `XmlWinEventLog` and `WinEventLog` — see [finding 3](../findings/03-split-log-formats-blind-alerts.md).

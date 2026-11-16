@@ -21,7 +21,9 @@ schedule:
   latest: now
 trigger: number of results > 0, per result
 throttle:
-  suppress: false            # KNOWN GAP — see findings/05-ad-alerts-no-throttling.md
+  suppress: true             # applied 2026-11-17 — see findings/05-ad-alerts-no-throttling.md
+  period: 15m
+  fields: TargetUserName
 why_window_longer_than_schedule: >
   Threshold detections keep a 15-minute window on a 5-minute schedule on purpose, so a slow
   brute force spread over several minutes still accumulates enough attempts to cross the

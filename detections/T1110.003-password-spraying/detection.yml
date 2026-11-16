@@ -20,7 +20,9 @@ schedule:
   latest: now
 trigger: number of results > 0, per result
 throttle:
-  suppress: false            # KNOWN GAP — see findings/05-ad-alerts-no-throttling.md
+  suppress: true             # applied 2026-11-17 — see findings/05-ad-alerts-no-throttling.md
+  period: 15m
+  fields: IpAddress
 key_difference_from_brute_force: >
   Same base search (4771 0x18 on DC01). Brute force = stats count BY TargetUserName (depth on
   one account). Spraying = stats dc(TargetUserName) BY IpAddress (breadth across accounts).
